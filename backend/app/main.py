@@ -63,9 +63,8 @@ async def log_requests_responses(request: Request, call_next):
     await log_response(response)
     return response
 
-# Health check endpoint
-@app.get("/health")
-async def health_check():
+@app.get("/api/health")
+async def health():
     return {
         "status": "healthy",
         "message": "Meeting Summarizer API is running",

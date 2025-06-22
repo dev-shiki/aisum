@@ -1,11 +1,11 @@
 # Meeting Summarizer
 
-Aplikasi web untuk transkripsi dan ringkasan audio meeting menggunakan AI. Aplikasi ini menggunakan Whisper API untuk speech-to-text dan Llama API untuk text summarization.
+Aplikasi web untuk transkripsi dan ringkasan audio meeting menggunakan AI. Aplikasi ini menggunakan Whisper API untuk speech-to-text dan Llama/Gemini API untuk text summarization.
 
 ## 🚀 Features
 
 - **Audio Transcription**: Konversi file MP3 ke teks menggunakan Whisper AI
-- **AI Summarization**: Ringkasan otomatis menggunakan Llama AI
+- **AI Summarization**: Ringkasan otomatis menggunakan Llama/Gemini AI
 - **Real-time Processing**: Status tracking real-time dengan polling
 - **File Download**: Download hasil ringkasan dalam format TXT
 - **Responsive Design**: UI yang responsif dan user-friendly
@@ -16,7 +16,7 @@ Aplikasi web untuk transkripsi dan ringkasan audio meeting menggunakan AI. Aplik
 ### Backend
 - **FastAPI** - Modern Python web framework
 - **Whisper API** - Speech-to-text transcription
-- **Llama API** - Text summarization
+- **Llama/Gemini API** - Text summarization
 - **Python-dotenv** - Environment variable management
 - **Uvicorn** - ASGI server
 
@@ -32,7 +32,7 @@ Aplikasi web untuk transkripsi dan ringkasan audio meeting menggunakan AI. Aplik
 - Python 3.8+
 - Node.js 14+
 - npm atau yarn
-- API keys untuk Whisper dan Llama (Groq)
+- API keys untuk Whisper dan Llama/Gemini (Groq/Google)
 
 ## 🔧 Installation
 
@@ -56,6 +56,7 @@ cp env.example .env
 # Edit .env file dengan API keys Anda
 # WHISPER_API_KEY=your_whisper_api_key
 # LLAMA_API_KEY=your_llama_api_key
+# GEMINI_API_KEY=your_gemini_api_key
 ```
 
 ### 3. Frontend Setup
@@ -79,14 +80,27 @@ Backend akan berjalan di: http://localhost:8000
 
 ### 2. Start Frontend Development Server
 ```bash
-cd meeting-summarizer
+cd ../meeting-summarizer
 npm run serve
 ```
 
-Frontend akan berjalan di: http://localhost:5173
+Frontend akan berjalan di: http://localhost:5173 (atau port lain sesuai config)
 
-### 3. Access the Application
-Buka browser dan kunjungi: http://localhost:5173
+### 3. Build for Production
+```bash
+npm run build
+```
+
+### 4. Lint & Fix Files
+```bash
+npm run lint
+```
+
+## 📝 Catatan
+- Pastikan API key sudah benar di file `.env`.
+- Untuk konfigurasi lebih lanjut, lihat dokumentasi di masing-masing folder.
+
+Jika ada masalah atau pertanyaan, silakan buat issue di repository ini.
 
 ## 📁 Project Structure
 

@@ -4,12 +4,19 @@ import logging
 import shutil
 import uuid
 from fastapi import APIRouter, UploadFile, File, HTTPException
+<<<<<<< HEAD
 from fastapi.responses import FileResponse
 from app.services.whisper import transcribe_audio
 from app.services.llama import summarize_text
 from app.config import Config
 import asyncio
 from app.services.gemini import summarize_with_gemini
+=======
+from app.services.whisper import transcribe_audio
+from app.services.llama import summarize_text
+import asyncio
+from fastapi.responses import FileResponse
+>>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
 
 # Konfigurasi logging
 logging.basicConfig(
@@ -21,7 +28,10 @@ logging.basicConfig(
 MAX_CHUNK_SIZE = 1000  # Maksimal ukuran chunk yang akan dikirim ke API
 MAX_SUMMARY_SIZE = 2000  # Maksimal ukuran ringkasan akhir
 MAX_RETRIES = 5  # Maksimum jumlah retry untuk API request
+<<<<<<< HEAD
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB max file size
+=======
+>>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
 
 # Fungsi untuk membagi teks menjadi chunks cerdas berdasarkan kalimat
 def split_text_into_chunks(text: str, max_chunk_size: int = MAX_CHUNK_SIZE) -> list:
@@ -57,6 +67,7 @@ def clean_output_text(summary: str) -> str:
     return " ".join(summary.replace("\n", " ").split())
 
 # Fungsi utama untuk memproses per batch dengan retry otomatis
+<<<<<<< HEAD
 def process_with_gemini_rate_limit(chunks: list) -> list:
     """
     Memproses teks dalam batch dengan rate limit Gemini (RPM, TPM, RPD).
@@ -76,10 +87,29 @@ def process_with_gemini_rate_limit(chunks: list) -> list:
                     logging.warning("[Gemini] Token limit tercapai, menunggu reset...")
                     time.sleep(60)  # Tunggu 1 menit
                     used_tokens = 0
+=======
+def process_with_rate_limit(chunks: list, max_requests_per_minute: int = 30) -> list:
+    """
+    Memproses teks dalam batch dengan retry otomatis jika terjadi rate limit (429).
+    """
+    results = []
+    request_delay = 60 / max_requests_per_minute  # Delay antara setiap request
+    
+    for chunk in chunks:
+        retries = MAX_RETRIES
+        delay = 5
+        
+        while retries > 0:
+            try:
+                # Mengirimkan teks ke Llama API untuk mendapatkan ringkasan
+                summary = summarize_text([{"role": "system", "content": "Berikut adalah hasil transcibe , Ringkas teks dalam bentuk paragraf koheren dan singkat."}, {"role": "user", "content": chunk}])
+                
+>>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
                 if summary:
                     results.append(clean_output_text(summary))
                 else:
                     results.append("Ringkasan tidak tersedia.")
+<<<<<<< HEAD
                 time.sleep(request_delay)
                 break
             except Exception as e:
@@ -87,6 +117,17 @@ def process_with_gemini_rate_limit(chunks: list) -> list:
                 if "429" in str(e):
                     time.sleep(delay)
                     delay *= 2
+=======
+                
+                time.sleep(request_delay)  # Mengatur delay untuk menghindari overload
+                break  # Keluar jika sukses
+            except Exception as e:
+                logging.error(f"Error summarizing chunk: {str(e)}")
+                
+                if "429" in str(e):  # Jika kena rate limit, coba ulang dengan delay bertambah
+                    time.sleep(delay)
+                    delay *= 2  # Exponential backoff
+>>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
                     retries -= 1
                 else:
                     results.append("Error dalam ringkasan.")
@@ -96,6 +137,7 @@ def process_with_gemini_rate_limit(chunks: list) -> list:
 # Fungsi utama untuk memproses teks dan menghasilkan ringkasan
 def summarize_text_batch(text: str) -> str:
     """
+<<<<<<< HEAD
     Fungsi utama untuk melakukan ringkasan teks dalam batch (pakai Gemini).
     """
     chunks = split_text_into_chunks(text)
@@ -103,16 +145,37 @@ def summarize_text_batch(text: str) -> str:
         logging.error("Teks kosong setelah chunking.")
         return "Teks kosong setelah chunking."
     batch_summaries = process_with_gemini_rate_limit(chunks)
+=======
+    Fungsi utama untuk melakukan ringkasan teks dalam batch.
+    """
+    # Langkah 1: Chunking Teks
+    chunks = split_text_into_chunks(text)
+    if not chunks:
+        logging.error("Teks kosong setelah chunking.")
+        return "Teks kosong setelah chunking."  # Menghindari teks kosong
+    
+    # Langkah 2: Summarization per batch
+    batch_summaries = process_with_rate_limit(chunks)
+    
+    # Langkah 3: Gabungkan Ringkasan
+>>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
     combined_summary = " ".join(batch_summaries)
     if not combined_summary.strip():
         logging.error("Ringkasan tidak tersedia setelah proses batch.")
         return "Ringkasan tidak tersedia setelah proses batch."
+<<<<<<< HEAD
     return combined_summary
+=======
+
+    # Langkah 4: Tidak perlu ringkasan ulang jika sudah selesai
+    return combined_summary  # Langsung kembalikan hasil ringkasan pertama
+>>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
 
 def create_summary_file(summary: str, task_id: str) -> str:
     """
     Membuat file teks dari ringkasan dan menyimpannya di folder sementara.
     """
+<<<<<<< HEAD
     # Pastikan folder temp ada
     os.makedirs(Config.TEMP_FOLDER, exist_ok=True)
     
@@ -125,6 +188,12 @@ def create_summary_file(summary: str, task_id: str) -> str:
     except Exception as e:
         logging.error(f"❌ Gagal membuat file ringkasan: {str(e)}")
         raise HTTPException(status_code=500, detail="Gagal membuat file ringkasan")
+=======
+    file_path = f"temp/{task_id}_summary.txt"
+    with open(file_path, "w") as f:
+        f.write(summary)
+    return file_path
+>>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
 
 # --- FastAPI router ---
 router = APIRouter()
@@ -135,6 +204,7 @@ async def summarize(file: UploadFile = File(...)):
     """
     Endpoint untuk mengunggah file MP3 dan memproses ringkasan.
     """
+<<<<<<< HEAD
     # Validasi file
     validate_upload_file(file)
     
@@ -157,6 +227,18 @@ async def summarize(file: UploadFile = File(...)):
     except Exception as e:
         logging.error(f"❌ Gagal menyimpan file: {str(e)}")
         raise HTTPException(status_code=500, detail="Gagal menyimpan file")
+=======
+    if not file.filename.endswith(".mp3"):
+        raise HTTPException(status_code=400, detail="Hanya file MP3 yang didukung.")
+
+    task_id = str(uuid.uuid4())
+    unique_filename = f"{task_id}_{file.filename}"
+    temp_file_path = os.path.join("temp", unique_filename)
+    os.makedirs("temp", exist_ok=True)
+
+    with open(temp_file_path, "wb") as temp_file:
+        shutil.copyfileobj(file.file, temp_file)
+>>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
 
     tasks[task_id] = {"status": "processing", "message": "Transkripsi sedang berjalan..."}
 
@@ -166,7 +248,11 @@ async def summarize(file: UploadFile = File(...)):
             transcription = transcribe_audio(temp_file_path, language="id")
 
             if not transcription.strip():
+<<<<<<< HEAD
                 tasks[task_id] = {"status": "failed", "error": "Transkripsi kosong atau gagal."}
+=======
+                tasks[task_id] = {"status": "failed", "error": "Transkripsi kosong."}
+>>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
                 return
 
             tasks[task_id]["message"] = "Transkripsi selesai. Memulai proses ringkasan..."
@@ -182,6 +268,7 @@ async def summarize(file: UploadFile = File(...)):
                 "transcription": transcription,
                 "summary": final_summary,
                 "summary_file": summary_file_path,
+<<<<<<< HEAD
                 "task_id": task_id,  # Tambahkan task_id untuk frontend
             }
 
@@ -199,12 +286,26 @@ async def summarize(file: UploadFile = File(...)):
 
     asyncio.create_task(process_task())
     return {"task_id": task_id, "status": "processing"}
+=======
+            }
+
+        except Exception as e:
+            tasks[task_id] = {"status": "failed", "error": str(e)}
+        finally:
+            if os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
+                logging.info(f"🗑️ Task {task_id}: File sementara dihapus.")
+
+    asyncio.create_task(process_task())
+    return {"task_id": task_id}
+>>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
 
 @router.get("/summarize/status/{request_id}")
 async def check_status(request_id: str):
     """
     Endpoint untuk memeriksa status pemrosesan berdasarkan task_id.
     """
+<<<<<<< HEAD
     if not request_id:
         raise HTTPException(status_code=400, detail="Task ID tidak valid")
     
@@ -215,12 +316,17 @@ async def check_status(request_id: str):
         task_status["download_url"] = f"/api/summarize/download/{request_id}"
     
     return task_status
+=======
+    return tasks.get(request_id, {"status": "not_found"})
+
+>>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
 
 @router.get("/summarize/download/{task_id}")
 async def download_summary(task_id: str):
     """
     Mengunduh file ringkasan.
     """
+<<<<<<< HEAD
     if not task_id:
         raise HTTPException(status_code=400, detail="Task ID tidak valid")
     
@@ -305,3 +411,16 @@ def validate_upload_file(file: UploadFile) -> None:
             status_code=400, 
             detail=f"Ukuran file terlalu besar. Maksimal {MAX_FILE_SIZE // (1024*1024)}MB"
         )
+=======
+    summary_file_path = os.path.join(os.getcwd(), 'temp', f'{task_id}_summary.txt')
+
+    # Memastikan file ringkasan ada
+    if not os.path.exists(summary_file_path):
+        raise HTTPException(status_code=404, detail="File ringkasan tidak ditemukan.")
+    
+    if not os.access(summary_file_path, os.R_OK):
+        raise HTTPException(status_code=403, detail="Tidak dapat mengakses file.")
+    
+    # Kembalikan file sebagai response
+    return FileResponse(summary_file_path, media_type='text/plain', filename=f"{task_id}_summary.txt")
+>>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
