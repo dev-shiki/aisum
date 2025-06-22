@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.routes.summarize import router as summarize_router
 from app.utils.logger import log_request, log_response
+from app.config import Config
 
 # Konfigurasi logging level via environment variable
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
@@ -13,22 +14,44 @@ logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=LO
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logging.info("🚀 Aplikasi FastAPI Dimulai...")
+    
+    # Validasi konfigurasi saat startup
+    try:
+        Config.validate_config()
+        logging.info("✅ Konfigurasi API keys valid")
+    except ValueError as e:
+        logging.error(f"❌ Konfigurasi tidak valid: {str(e)}")
+        logging.error("Pastikan file .env sudah dibuat dengan API keys yang benar")
+        raise e
+    
+    # Pastikan folder temp ada
+    os.makedirs(Config.TEMP_FOLDER, exist_ok=True)
+    logging.info(f"✅ Folder temp siap: {Config.TEMP_FOLDER}")
+    
     yield
+    
     logging.info("🛑 Aplikasi FastAPI Ditutup.")
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    title="Meeting Summarizer API",
+    description="API untuk transkripsi dan ringkasan audio meeting menggunakan AI",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
 # CORS for Vue frontend
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=origins,  # Lebih secure daripada "*"
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -43,7 +66,11 @@ async def log_requests_responses(request: Request, call_next):
 # Health check endpoint
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "message": "Meeting Summarizer API is running",
+        "version": "1.0.0"
+    }
 
 # Include summarize router
 app.include_router(summarize_router, prefix="/api")
