@@ -45,23 +45,26 @@ origins = [
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "*"  # Temporary untuk development
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Lebih secure daripada "*"
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
 # Middleware for logging requests and responses
-@app.middleware("http")
-async def log_requests_responses(request: Request, call_next):
-    await log_request(request)
-    response = await call_next(request)
-    await log_response(response)
-    return response
+# @app.middleware("http")
+# async def log_requests_responses(request: Request, call_next):
+#     await log_request(request)
+#     response = await call_next(request)
+#     await log_response(response)
+#     return response
 
 @app.get("/api/health")
 async def health():

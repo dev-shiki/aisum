@@ -3,20 +3,20 @@ import time
 import logging
 import shutil
 import uuid
-from fastapi import APIRouter, UploadFile, File, HTTPException
-<<<<<<< HEAD
+import re
+import hashlib
+import json
+from datetime import datetime
+from typing import List, Dict, Tuple, Optional
+from fastapi import APIRouter, UploadFile, File, HTTPException, Body
 from fastapi.responses import FileResponse
 from app.services.whisper import transcribe_audio
-from app.services.llama import summarize_text
+from app.services.gemini import summarize_with_gemini, detect_content_type
 from app.config import Config
 import asyncio
-from app.services.gemini import summarize_with_gemini
-=======
-from app.services.whisper import transcribe_audio
-from app.services.llama import summarize_text
-import asyncio
-from fastapi.responses import FileResponse
->>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
+import tempfile
+import subprocess
+from pydantic import BaseModel
 
 # Konfigurasi logging
 logging.basicConfig(
@@ -24,189 +24,245 @@ logging.basicConfig(
     level=logging.INFO,
 )
 
-# Max chunk size and max summary size limits
+# Advanced chunking configuration
 MAX_CHUNK_SIZE = 1000  # Maksimal ukuran chunk yang akan dikirim ke API
 MAX_SUMMARY_SIZE = 2000  # Maksimal ukuran ringkasan akhir
+CHUNK_OVERLAP = 100  # Overlap antar chunks untuk menjaga konteks
 MAX_RETRIES = 5  # Maksimum jumlah retry untuk API request
-<<<<<<< HEAD
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB max file size
-=======
->>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
 
-# Fungsi untuk membagi teks menjadi chunks cerdas berdasarkan kalimat
-def split_text_into_chunks(text: str, max_chunk_size: int = MAX_CHUNK_SIZE) -> list:
-    """
-    Memecah teks panjang menjadi bagian kecil berdasarkan kalimat agar tetap memiliki konteks.
-    """
-    sentences = text.split(". ")  # Memecah berdasarkan kalimat (tanda titik diikuti spasi)
-    chunks = []
-    current_chunk = ""
-    
-    for sentence in sentences:
-        if len(current_chunk) + len(sentence) + 2 > max_chunk_size:  # +2 untuk ". " separator
-            chunks.append(current_chunk)
-            current_chunk = sentence
-        else:
-            if current_chunk:
-                current_chunk += ". " + sentence
-            else:
-                current_chunk = sentence
-    
-    if current_chunk:
-        chunks.append(current_chunk)
-    
-    return chunks
-
-# Fungsi untuk membersihkan hasil ringkasan
-def clean_output_text(summary: str) -> str:
-    """
-    Membersihkan teks hasil ringkasan agar lebih rapi.
-    """
-    if not summary:
-        return "Ringkasan tidak tersedia."
-    return " ".join(summary.replace("\n", " ").split())
-
-# Fungsi utama untuk memproses per batch dengan retry otomatis
-<<<<<<< HEAD
-def process_with_gemini_rate_limit(chunks: list) -> list:
-    """
-    Memproses teks dalam batch dengan rate limit Gemini (RPM, TPM, RPD).
-    """
-    results = []
-    request_delay = 60 / Config.GEMINI_RPM  # Delay antar request (detik)
-    used_tokens = 0
-    max_tokens = Config.GEMINI_TPM
-    for chunk in chunks:
-        retries = MAX_RETRIES
-        delay = 5
-        while retries > 0:
-            try:
-                summary = summarize_with_gemini(chunk)
-                used_tokens += len(chunk.split())
-                if used_tokens > max_tokens:
-                    logging.warning("[Gemini] Token limit tercapai, menunggu reset...")
-                    time.sleep(60)  # Tunggu 1 menit
-                    used_tokens = 0
-=======
-def process_with_rate_limit(chunks: list, max_requests_per_minute: int = 30) -> list:
-    """
-    Memproses teks dalam batch dengan retry otomatis jika terjadi rate limit (429).
-    """
-    results = []
-    request_delay = 60 / max_requests_per_minute  # Delay antara setiap request
-    
-    for chunk in chunks:
-        retries = MAX_RETRIES
-        delay = 5
-        
-        while retries > 0:
-            try:
-                # Mengirimkan teks ke Llama API untuk mendapatkan ringkasan
-                summary = summarize_text([{"role": "system", "content": "Berikut adalah hasil transcibe , Ringkas teks dalam bentuk paragraf koheren dan singkat."}, {"role": "user", "content": chunk}])
-                
->>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
-                if summary:
-                    results.append(clean_output_text(summary))
-                else:
-                    results.append("Ringkasan tidak tersedia.")
-<<<<<<< HEAD
-                time.sleep(request_delay)
-                break
-            except Exception as e:
-                logging.error(f"[Gemini] Error summarizing chunk: {str(e)}")
-                if "429" in str(e):
-                    time.sleep(delay)
-                    delay *= 2
-=======
-                
-                time.sleep(request_delay)  # Mengatur delay untuk menghindari overload
-                break  # Keluar jika sukses
-            except Exception as e:
-                logging.error(f"Error summarizing chunk: {str(e)}")
-                
-                if "429" in str(e):  # Jika kena rate limit, coba ulang dengan delay bertambah
-                    time.sleep(delay)
-                    delay *= 2  # Exponential backoff
->>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
-                    retries -= 1
-                else:
-                    results.append("Error dalam ringkasan.")
-                    break
-    return results
-
-# Fungsi utama untuk memproses teks dan menghasilkan ringkasan
-def summarize_text_batch(text: str) -> str:
-    """
-<<<<<<< HEAD
-    Fungsi utama untuk melakukan ringkasan teks dalam batch (pakai Gemini).
-    """
-    chunks = split_text_into_chunks(text)
-    if not chunks:
-        logging.error("Teks kosong setelah chunking.")
-        return "Teks kosong setelah chunking."
-    batch_summaries = process_with_gemini_rate_limit(chunks)
-=======
-    Fungsi utama untuk melakukan ringkasan teks dalam batch.
-    """
-    # Langkah 1: Chunking Teks
-    chunks = split_text_into_chunks(text)
-    if not chunks:
-        logging.error("Teks kosong setelah chunking.")
-        return "Teks kosong setelah chunking."  # Menghindari teks kosong
-    
-    # Langkah 2: Summarization per batch
-    batch_summaries = process_with_rate_limit(chunks)
-    
-    # Langkah 3: Gabungkan Ringkasan
->>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
-    combined_summary = " ".join(batch_summaries)
-    if not combined_summary.strip():
-        logging.error("Ringkasan tidak tersedia setelah proses batch.")
-        return "Ringkasan tidak tersedia setelah proses batch."
-<<<<<<< HEAD
-    return combined_summary
-=======
-
-    # Langkah 4: Tidak perlu ringkasan ulang jika sudah selesai
-    return combined_summary  # Langsung kembalikan hasil ringkasan pertama
->>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
-
-def create_summary_file(summary: str, task_id: str) -> str:
-    """
-    Membuat file teks dari ringkasan dan menyimpannya di folder sementara.
-    """
-<<<<<<< HEAD
-    # Pastikan folder temp ada
-    os.makedirs(Config.TEMP_FOLDER, exist_ok=True)
-    
-    file_path = os.path.join(Config.TEMP_FOLDER, f"{task_id}_summary.txt")
-    try:
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(summary)
-        logging.info(f"✅ File ringkasan berhasil dibuat: {file_path}")
-        return file_path
-    except Exception as e:
-        logging.error(f"❌ Gagal membuat file ringkasan: {str(e)}")
-        raise HTTPException(status_code=500, detail="Gagal membuat file ringkasan")
-=======
-    file_path = f"temp/{task_id}_summary.txt"
-    with open(file_path, "w") as f:
-        f.write(summary)
-    return file_path
->>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
-
-# --- FastAPI router ---
 router = APIRouter()
-tasks = {}  # Menyimpan status task berdasarkan task_id
+
+# In-memory storage untuk tasks
+tasks = {}
+
+class YouTubeRequest(BaseModel):
+    youtube_url: str
+
+def validate_youtube_url(url: str) -> bool:
+    """Validasi URL YouTube."""
+    youtube_patterns = [
+        r'^https?://(?:www\.)?youtube\.com/watch\?v=[\w-]+',
+        r'^https?://youtu\.be/[\w-]+',
+        r'^https?://(?:www\.)?youtube\.com/embed/[\w-]+',
+        r'^https?://(?:www\.)?youtube\.com/v/[\w-]+',
+        r'^https?://(?:www\.)?youtube\.com/shorts/[\w-]+',  # YouTube Shorts
+        r'^https?://youtube\.com/shorts/[\w-]+'  # YouTube Shorts tanpa www
+    ]
+    
+    for pattern in youtube_patterns:
+        if re.match(pattern, url):
+            return True
+    return False
+
+def download_youtube_audio(youtube_url: str, output_dir: str) -> str:
+    """
+    Download audio from YouTube using yt-dlp and return the file path.
+    """
+    try:
+        logging.info(f"🎬 Starting download for: {youtube_url}")
+        logging.info(f"📁 Output directory: {output_dir}")
+        
+        # Path absolut ke yt-dlp.exe
+        yt_dlp_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../venv/Scripts/yt-dlp.exe'))
+        logging.info(f"🔎 Menggunakan yt-dlp path: {yt_dlp_path}")
+        
+        # Output file path
+        output_path = os.path.join(output_dir, '%(id)s.%(ext)s')
+        logging.info(f"📄 Output path pattern: {output_path}")
+        
+        # Download command dengan optimasi untuk kecepatan
+        command = [
+            yt_dlp_path,
+            '-f', 'worstaudio[ext=m4a]/worstaudio/best[filesize<10M]',  # Lebih kecil dari 10MB
+            '--extract-audio',
+            '--audio-format', 'mp3',
+            '--audio-quality', '32K',  # Quality lebih rendah untuk kecepatan
+            '--max-downloads', '1',
+            '--no-playlist',
+            '--no-check-certificates',  # Skip SSL check untuk kecepatan
+            '--no-warnings',
+            '--quiet',
+            '--max-filesize', '10M',  # Batasi ukuran file maksimal
+            '-o', output_path,
+            youtube_url
+        ]
+        
+        logging.info(f"🔧 Command: {' '.join(command)}")
+        logging.info(f"🎬 Downloading: {youtube_url}")
+        
+        # Run dengan timeout 3 menit (lebih pendek)
+        result = subprocess.run(command, timeout=180, capture_output=True, text=True)
+        logging.info(f"🔚 yt-dlp exited with code: {result.returncode}")
+        logging.info(f"📤 yt-dlp stdout: {result.stdout}")
+        logging.info(f"📥 yt-dlp stderr: {result.stderr}")
+        
+        # Find the downloaded file
+        files = os.listdir(output_dir)
+        logging.info(f"📁 Files in output dir: {files}")
+        
+        for file in files:
+            if file.endswith('.mp3'):
+                file_path = os.path.join(output_dir, file)
+                file_size = os.path.getsize(file_path) / (1024 * 1024)  # MB
+                logging.info(f"✅ Downloaded: {file} ({file_size:.1f} MB)")
+                return file_path
+        
+        logging.error(f"❌ No audio file found after download. All files: {files}")
+        raise Exception(f'Audio file not found after download. yt-dlp exit code: {result.returncode}, stdout: {result.stdout}, stderr: {result.stderr}')
+        
+    except subprocess.TimeoutExpired:
+        logging.error("❌ Download timeout - video terlalu panjang atau koneksi lambat")
+        raise Exception('Download timeout - video terlalu panjang atau koneksi lambat')
+    except Exception as e:
+        logging.error(f"❌ Download error: {str(e)}")
+        raise Exception(f'Download error: {str(e)}')
+
+@router.post("/summarize/youtube/")
+async def summarize_youtube(request: YouTubeRequest):
+    """
+    Terima link YouTube, download audio, transcribe, dan summarize.
+    """
+    try:
+        youtube_url = request.youtube_url.strip()
+        
+        logging.info(f"🎬 ===== START YOUTUBE PROCESSING =====")
+        logging.info(f"🎬 URL: {youtube_url}")
+        
+        # Validasi URL
+        if not validate_youtube_url(youtube_url):
+            logging.error(f"❌ Invalid YouTube URL: {youtube_url}")
+            raise HTTPException(status_code=400, detail="URL YouTube tidak valid. Pastikan URL berasal dari YouTube.")
+        
+        logging.info("✅ URL validation passed")
+        
+        # Validasi config
+        try:
+            Config.validate_config()
+            logging.info("✅ Config validation passed")
+        except ValueError as e:
+            logging.error(f"❌ Config validation failed: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+        
+        temp_dir = tempfile.mkdtemp(prefix="yt_", dir="temp")
+        logging.info(f"📁 Created temp directory: {temp_dir}")
+        
+        try:
+            logging.info(f"🎬 Memulai proses YouTube: {youtube_url}")
+            
+            # 1. Download audio
+            logging.info("📥 ===== STEP 1: DOWNLOADING AUDIO =====")
+            audio_path = download_youtube_audio(youtube_url, temp_dir)
+            logging.info(f"✅ Audio downloaded successfully: {audio_path}")
+            
+            # 2. Transcribe audio
+            logging.info("🎤 ===== STEP 2: TRANSCRIBING AUDIO =====")
+            transcription = transcribe_audio(audio_path, language="id")
+            
+            if not transcription.strip():
+                logging.error("❌ Transcription is empty or failed")
+                raise HTTPException(status_code=400, detail="Transkripsi kosong atau gagal. Pastikan video memiliki audio yang jelas.")
+            
+            logging.info(f"✅ Transkripsi selesai: {len(transcription)} karakter")
+            
+            # 3. Summarize dengan progress detail
+            logging.info("📝 ===== STEP 3: SUMMARIZING =====")
+            content_type = detect_content_type(transcription)
+            logging.info(f"🔍 Content type detected: {content_type}")
+            
+            # Optimasi berdasarkan panjang transkripsi
+            if len(transcription) > 10000:  # Transkripsi panjang
+                logging.info("📊 Transkripsi panjang terdeteksi, menggunakan chunking...")
+                summary = summarize_with_gemini(transcription, content_type=content_type)
+            else:  # Transkripsi pendek, langsung summarize
+                logging.info("📊 Transkripsi pendek, langsung summarize...")
+                summary = summarize_with_gemini(transcription, content_type=content_type)
+            
+            logging.info("✅ Summarization selesai!")
+
+            # Pastikan summary dikirim sebagai object (dict), bukan string JSON
+            summary_obj = summary
+            if isinstance(summary, str):
+                try:
+                    summary_obj = json.loads(summary)
+                except Exception:
+                    summary_obj = summary
+
+            # 4. Cleanup audio
+            logging.info("🧹 ===== STEP 4: CLEANUP =====")
+            if os.path.exists(audio_path):
+                os.remove(audio_path)
+                logging.info(f"🗑️ Deleted audio file: {audio_path}")
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            logging.info(f"🗑️ Deleted temp directory: {temp_dir}")
+            
+            # 5. Return result
+            logging.info("🎉 ===== YOUTUBE PROCESSING COMPLETED =====")
+            return {
+                "summary": summary_obj,
+                "content_type": content_type,
+                "transcription_length": len(transcription),
+                "youtube_url": youtube_url,
+                "status": "completed",
+                "processing_info": {
+                    "transcription_chars": len(transcription),
+                    "summary_chars": len(str(summary_obj)),
+                    "compression_ratio": f"{round(len(str(summary_obj)) / len(transcription) * 100, 2) if transcription else 0}%",
+                    "content_type": content_type
+                }
+            }
+            
+        except HTTPException:
+            # Re-raise HTTP exceptions
+            logging.error("❌ HTTP Exception occurred, cleaning up...")
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            raise
+            
+        except Exception as e:
+            logging.error(f"❌ Unexpected error during processing: {str(e)}")
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            logging.error(f"❌ YouTube processing failed: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Gagal memproses YouTube: {str(e)}")
+            
+    except HTTPException:
+        # Re-raise HTTP exceptions from outer scope
+        raise
+    except Exception as e:
+        logging.error(f"❌ Critical error in summarize_youtube: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error kritis: {str(e)}")
+
+@router.post("/summarize/youtube/test")
+async def test_youtube_endpoint(request: YouTubeRequest):
+    """
+    Test endpoint untuk YouTube tanpa download video asli.
+    """
+    youtube_url = request.youtube_url.strip()
+    
+    # Validasi URL
+    if not validate_youtube_url(youtube_url):
+        raise HTTPException(status_code=400, detail="URL YouTube tidak valid.")
+    
+    # Return mock data untuk test
+    return {
+        "summary": "Ini adalah test summary untuk video YouTube. Endpoint berfungsi dengan baik!",
+        "content_type": "youtube",
+        "transcription_length": 100,
+        "youtube_url": youtube_url,
+        "status": "completed",
+        "test_mode": True
+    }
 
 @router.post("/summarize/")
 async def summarize(file: UploadFile = File(...)):
     """
     Endpoint untuk mengunggah file MP3 dan memproses ringkasan.
     """
-<<<<<<< HEAD
     # Validasi file
-    validate_upload_file(file)
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Nama file tidak valid")
+    
+    if not file.filename.lower().endswith('.mp3'):
+        raise HTTPException(status_code=400, detail="Hanya file MP3 yang didukung")
     
     # Validasi config
     try:
@@ -227,18 +283,6 @@ async def summarize(file: UploadFile = File(...)):
     except Exception as e:
         logging.error(f"❌ Gagal menyimpan file: {str(e)}")
         raise HTTPException(status_code=500, detail="Gagal menyimpan file")
-=======
-    if not file.filename.endswith(".mp3"):
-        raise HTTPException(status_code=400, detail="Hanya file MP3 yang didukung.")
-
-    task_id = str(uuid.uuid4())
-    unique_filename = f"{task_id}_{file.filename}"
-    temp_file_path = os.path.join("temp", unique_filename)
-    os.makedirs("temp", exist_ok=True)
-
-    with open(temp_file_path, "wb") as temp_file:
-        shutil.copyfileobj(file.file, temp_file)
->>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
 
     tasks[task_id] = {"status": "processing", "message": "Transkripsi sedang berjalan..."}
 
@@ -248,28 +292,32 @@ async def summarize(file: UploadFile = File(...)):
             transcription = transcribe_audio(temp_file_path, language="id")
 
             if not transcription.strip():
-<<<<<<< HEAD
                 tasks[task_id] = {"status": "failed", "error": "Transkripsi kosong atau gagal."}
-=======
-                tasks[task_id] = {"status": "failed", "error": "Transkripsi kosong."}
->>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
                 return
 
             tasks[task_id]["message"] = "Transkripsi selesai. Memulai proses ringkasan..."
             logging.info(f"✅ Task {task_id}: Transkripsi selesai ({len(transcription)} karakter).")
             
-            # Langkah 1: Summarization
-            final_summary = summarize_text_batch(transcription)
-            # Membuat file ringkasan
-            summary_file_path = create_summary_file(final_summary, task_id)
+            # Langkah 1: Summarization dengan content type detection
+            content_type = detect_content_type(transcription)
+            logging.info(f"🔍 Content type detected for task {task_id}: {content_type}")
+            
+            final_summary = summarize_with_gemini(transcription, content_type=content_type)
             
             tasks[task_id] = {
                 "status": "completed",
                 "transcription": transcription,
                 "summary": final_summary,
-                "summary_file": summary_file_path,
-<<<<<<< HEAD
-                "task_id": task_id,  # Tambahkan task_id untuk frontend
+                "task_id": task_id,
+                "content_type": content_type,
+                "metadata": {
+                    "original_length": len(transcription),
+                    "summary_length": len(final_summary),
+                    "compression_ratio": f"{round(len(final_summary) / len(transcription) * 100, 2) if transcription else 0}%",
+                    "generated_at": datetime.now().isoformat(),
+                    "content_type": content_type,
+                    "content_type_detected": True
+                }
             }
 
         except Exception as e:
@@ -286,141 +334,24 @@ async def summarize(file: UploadFile = File(...)):
 
     asyncio.create_task(process_task())
     return {"task_id": task_id, "status": "processing"}
-=======
-            }
-
-        except Exception as e:
-            tasks[task_id] = {"status": "failed", "error": str(e)}
-        finally:
-            if os.path.exists(temp_file_path):
-                os.remove(temp_file_path)
-                logging.info(f"🗑️ Task {task_id}: File sementara dihapus.")
-
-    asyncio.create_task(process_task())
-    return {"task_id": task_id}
->>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
 
 @router.get("/summarize/status/{request_id}")
 async def check_status(request_id: str):
     """
     Endpoint untuk memeriksa status pemrosesan berdasarkan task_id.
     """
-<<<<<<< HEAD
     if not request_id:
         raise HTTPException(status_code=400, detail="Task ID tidak valid")
     
     task_status = tasks.get(request_id, {"status": "not_found"})
-    
-    # Jika task completed, tambahkan download URL
-    if task_status.get("status") == "completed" and task_status.get("summary_file"):
-        task_status["download_url"] = f"/api/summarize/download/{request_id}"
-    
     return task_status
-=======
-    return tasks.get(request_id, {"status": "not_found"})
 
->>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
-
-@router.get("/summarize/download/{task_id}")
-async def download_summary(task_id: str):
+@router.get("/health")
+async def health_check():
     """
-    Mengunduh file ringkasan.
+    Health check untuk API.
     """
-<<<<<<< HEAD
-    if not task_id:
-        raise HTTPException(status_code=400, detail="Task ID tidak valid")
-    
-    # Cek apakah task ada dan completed
-    task_status = tasks.get(task_id)
-    if not task_status:
-        raise HTTPException(status_code=404, detail="Task tidak ditemukan")
-    
-    if task_status.get("status") != "completed":
-        raise HTTPException(status_code=400, detail="Task belum selesai diproses")
-    
-    summary_file_path = task_status.get("summary_file")
-    if not summary_file_path:
-        raise HTTPException(status_code=404, detail="File ringkasan tidak ditemukan dalam task")
-
-    # Validasi path file
-    if not os.path.exists(summary_file_path):
-        raise HTTPException(status_code=404, detail="File ringkasan tidak ditemukan di server")
-    
-    if not os.access(summary_file_path, os.R_OK):
-        raise HTTPException(status_code=403, detail="Tidak dapat mengakses file ringkasan")
-    
-    try:
-        # Kembalikan file sebagai response dengan nama file yang lebih user-friendly
-        filename = f"summary_{task_id}.txt"
-        return FileResponse(
-            path=summary_file_path, 
-            media_type='text/plain', 
-            filename=filename,
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
-        )
-    except Exception as e:
-        logging.error(f"❌ Error saat download file {task_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Gagal mengunduh file")
-
-# Cleanup endpoint untuk menghapus file lama (opsional)
-@router.delete("/summarize/cleanup/{task_id}")
-async def cleanup_task(task_id: str):
-    """
-    Membersihkan file dan data task yang sudah selesai.
-    """
-    if not task_id:
-        raise HTTPException(status_code=400, detail="Task ID tidak valid")
-    
-    task_status = tasks.get(task_id)
-    if not task_status:
-        raise HTTPException(status_code=404, detail="Task tidak ditemukan")
-    
-    # Hapus file ringkasan jika ada
-    summary_file_path = task_status.get("summary_file")
-    if summary_file_path and os.path.exists(summary_file_path):
-        try:
-            os.remove(summary_file_path)
-            logging.info(f"🗑️ File ringkasan dihapus: {summary_file_path}")
-        except Exception as e:
-            logging.warning(f"⚠️ Gagal menghapus file ringkasan: {str(e)}")
-    
-    # Hapus task dari memory
-    if task_id in tasks:
-        del tasks[task_id]
-    
-    return {"message": "Task berhasil dibersihkan"}
-
-# Validasi file upload
-def validate_upload_file(file: UploadFile) -> None:
-    """
-    Validasi file yang diupload
-    """
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="Nama file tidak valid")
-    
-    if not file.filename.lower().endswith('.mp3'):
-        raise HTTPException(status_code=400, detail="Hanya file MP3 yang didukung")
-    
-    # Cek content type
-    if file.content_type not in ['audio/mp3', 'audio/mpeg', 'audio/mp4']:
-        raise HTTPException(status_code=400, detail="Tipe file tidak didukung")
-    
-    # Cek ukuran file (max 50MB)
-    if hasattr(file, 'size') and file.size and file.size > MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Ukuran file terlalu besar. Maksimal {MAX_FILE_SIZE // (1024*1024)}MB"
-        )
-=======
-    summary_file_path = os.path.join(os.getcwd(), 'temp', f'{task_id}_summary.txt')
-
-    # Memastikan file ringkasan ada
-    if not os.path.exists(summary_file_path):
-        raise HTTPException(status_code=404, detail="File ringkasan tidak ditemukan.")
-    
-    if not os.access(summary_file_path, os.R_OK):
-        raise HTTPException(status_code=403, detail="Tidak dapat mengakses file.")
-    
-    # Kembalikan file sebagai response
-    return FileResponse(summary_file_path, media_type='text/plain', filename=f"{task_id}_summary.txt")
->>>>>>> ebf96c8bb5f394337221a9323b61a5240a614c4c
+    return {
+        "status": "healthy",
+        "timestamp": time.time()
+    } 
