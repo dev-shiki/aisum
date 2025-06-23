@@ -135,55 +135,55 @@
             <div class="summary-content">
               <template v-if="isJson(summaryData)">
                 <div v-if="summaryData.executive_summary">
-                  <h5>Executive Summary</h5>
+                  <h5>Summary</h5>
                   <p>{{ summaryData.executive_summary }}</p>
                 </div>
-                <div v-if="summaryData.key_points && summaryData.key_points.length">
-                  <h5>Key Points</h5>
+                <details v-if="summaryData.key_points && summaryData.key_points.length">
+                  <summary><b>Key Points</b></summary>
                   <ul>
                     <li v-for="(point, idx) in summaryData.key_points" :key="idx">
                       <b>{{ point.point || point.topic }}:</b> {{ point.description || point.summary }}
                     </li>
                   </ul>
-                </div>
-                <div v-if="summaryData.tutorial_steps && summaryData.tutorial_steps.length">
-                  <h5>Tutorial Steps</h5>
+                </details>
+                <details v-if="summaryData.tutorial_steps && summaryData.tutorial_steps.length">
+                  <summary><b>Tutorial Steps</b></summary>
                   <ul>
                     <li v-for="(step, idx) in summaryData.tutorial_steps" :key="idx">
                       <b>{{ step.step }}:</b> {{ step.description }} <span v-if="step.tips">({{ step.tips }})</span>
                     </li>
                   </ul>
-                </div>
-                <div v-if="summaryData.tips_and_tricks && summaryData.tips_and_tricks.length">
-                  <h5>Tips & Tricks</h5>
+                </details>
+                <details v-if="summaryData.tips_and_tricks && summaryData.tips_and_tricks.length">
+                  <summary><b>Tips & Tricks</b></summary>
                   <ul>
                     <li v-for="(tip, idx) in summaryData.tips_and_tricks" :key="idx">{{ tip }}</li>
                   </ul>
-                </div>
-                <div v-if="summaryData.recommendations && summaryData.recommendations.length">
-                  <h5>Recommendations</h5>
+                </details>
+                <details v-if="summaryData.recommendations && summaryData.recommendations.length">
+                  <summary><b>Recommendations</b></summary>
                   <ul>
                     <li v-for="(rec, idx) in summaryData.recommendations" :key="idx">{{ rec }}</li>
                   </ul>
-                </div>
-                <div v-if="summaryData.call_to_action">
-                  <h5>Call to Action</h5>
+                </details>
+                <details v-if="summaryData.call_to_action">
+                  <summary><b>Call to Action</b></summary>
                   <p>{{ summaryData.call_to_action }}</p>
-                </div>
-                <div v-if="summaryData.related_content && summaryData.related_content.length">
-                  <h5>Related Content</h5>
+                </details>
+                <details v-if="summaryData.related_content && summaryData.related_content.length">
+                  <summary><b>Related Content</b></summary>
                   <ul>
                     <li v-for="(rel, idx) in summaryData.related_content" :key="idx">{{ rel }}</li>
                   </ul>
-                </div>
-                <div v-if="summaryData.products_mentioned && summaryData.products_mentioned.length">
-                  <h5>Products Mentioned</h5>
+                </details>
+                <details v-if="summaryData.products_mentioned && summaryData.products_mentioned.length">
+                  <summary><b>Products Mentioned</b></summary>
                   <ul>
                     <li v-for="(prod, idx) in summaryData.products_mentioned" :key="idx">
                       <b>{{ prod.product }}:</b> {{ prod.description }} <span v-if="prod.opinion">({{ prod.opinion }})</span>
                     </li>
                   </ul>
-                </div>
+                </details>
               </template>
               <template v-else>
                 <p>{{ uploadStatus.summary }}</p>

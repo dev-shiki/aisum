@@ -966,9 +966,10 @@ def parse_gemini_response(summary_text: str):
         # Fallback: kembalikan format text sederhana
         return {"format": "text", "content": summary_text}
 
-def summarize_with_gemini(text: str, system_prompt: str = None, content_type: str = None) -> str:
+def summarize_with_gemini(text: str, system_prompt: str = None, content_type: str = None):
     """
     Kirim permintaan ringkasan ke Google Gemini 2.0 Flash API dengan output yang terstruktur.
+    Return dict jika Gemini mengembalikan JSON, string jika tidak bisa di-parse.
     """
     if not Config.GEMINI_API_KEY:
         raise Exception("GEMINI_API_KEY tidak tersedia di environment variables")
@@ -977,11 +978,9 @@ def summarize_with_gemini(text: str, system_prompt: str = None, content_type: st
     headers = {"Content-Type": "application/json"}
     max_retries = 3
     backoff = 2
-    # Deteksi jenis konten jika tidak disediakan
     if not content_type:
         content_type = detect_content_type(text)
         logging.info(f"🔍 Content type detected: {content_type}")
-    # Gunakan prompt yang sesuai dengan jenis konten
     if system_prompt:
         prompt = system_prompt
     else:
@@ -996,22 +995,23 @@ def summarize_with_gemini(text: str, system_prompt: str = None, content_type: st
             response = requests.post(url, headers=headers, json=payload, timeout=30)
             response.raise_for_status()
             data = response.json()
-            # Ambil hasil ringkasan dari response Gemini
             summary_text = data["candidates"][0]["content"]["parts"][0]["text"]
-            # Parse dan format output
             parsed_data = parse_gemini_response(summary_text)
-            formatted_output = format_content_specific_output(parsed_data, text, content_type)
-            return formatted_output
+            # Jika hasil parse adalah dict dan bukan fallback format text, return dict
+            if isinstance(parsed_data, dict) and parsed_data.get("format") != "text":
+                return parsed_data
+            # Jika fallback, return string plain
+            return summary_text
         except json.JSONDecodeError as e:
             logging.warning(f"[Gemini] JSON parsing failed, using simple format: {e}")
-            # Fallback ke format sederhana
             fallback_prompt = create_simple_summary_prompt(text)
             payload["contents"][0]["parts"][0]["text"] = fallback_prompt
             try:
                 response = requests.post(url, headers=headers, json=payload, timeout=30)
                 response.raise_for_status()
                 data = response.json()
-                return data["candidates"][0]["content"]["parts"][0]["text"]
+                summary_text = data["candidates"][0]["content"]["parts"][0]["text"]
+                return summary_text
             except Exception as e2:
                 logging.warning(f"[Gemini] Fallback request failed: {e2}")
                 if attempt < max_retries - 1:
