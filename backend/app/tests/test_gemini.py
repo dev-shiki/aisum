@@ -111,7 +111,7 @@ def test_summarize_with_gemini_all_branches(mock_post, monkeypatch):
     monkeypatch.setenv("GEMINI_API_URL", "http://fake")
     # Sukses JSON
     mock_post.return_value.status_code = 200
-    mock_post.return_value.json.return_value = {"candidates": [{"content": {"parts": [{"text": '{"executive_summary": "ok"}'}}]}]}
+    mock_post.return_value.json.return_value = {"candidates": [{"content": {"parts": [{"text": '{"executive_summary": "ok"}' }]}}]}
     result = gemini.summarize_with_gemini('teks', content_type='meeting')
     assert isinstance(result, dict)
     # Sukses fallback string
