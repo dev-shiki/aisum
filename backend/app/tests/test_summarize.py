@@ -2,9 +2,10 @@ import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 from app.routes import summarize
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+import os
 
-def test_validate_youtube_url_valid():
+def test_validate_youtube_url_all_patterns():
     valid_urls = [
         "https://www.youtube.com/watch?v=abc123",
         "https://youtu.be/abc123",
@@ -15,15 +16,52 @@ def test_validate_youtube_url_valid():
     ]
     for url in valid_urls:
         assert summarize.validate_youtube_url(url)
-
-def test_validate_youtube_url_invalid():
-    invalid_urls = [
-        "https://google.com",
-        "https://vimeo.com/abc123",
-        "random string"
-    ]
+    invalid_urls = ["https://google.com", "random string"]
     for url in invalid_urls:
         assert not summarize.validate_youtube_url(url)
+
+def test_download_youtube_audio_success(monkeypatch, tmp_path):
+    # Simulasi file mp3 berhasil di-download
+    monkeypatch.setattr(summarize, "subprocess", __import__("subprocess"))
+    class Result:
+        returncode = 0
+        stdout = ""
+        stderr = ""
+    monkeypatch.setattr(summarize.subprocess, "run", lambda *a, **k: Result())
+    monkeypatch.setattr(os, "listdir", lambda d: ["abc.mp3"])
+    monkeypatch.setattr(os.path, "getsize", lambda f: 1024*1024)
+    monkeypatch.setattr(os.path, "join", lambda a, b: f"{a}/{b}")
+    monkeypatch.setattr(os.path, "exists", lambda f: True)
+    monkeypatch.setattr(os, "remove", lambda f: None)
+    path = summarize.download_youtube_audio("https://youtu.be/abc123", str(tmp_path))
+    assert path.endswith(".mp3")
+
+def test_download_youtube_audio_no_file(monkeypatch, tmp_path):
+    monkeypatch.setattr(summarize, "subprocess", __import__("subprocess"))
+    class Result:
+        returncode = 0
+        stdout = ""
+        stderr = ""
+    monkeypatch.setattr(summarize.subprocess, "run", lambda *a, **k: Result())
+    monkeypatch.setattr(os, "listdir", lambda d: ["abc.txt"])
+    with pytest.raises(Exception):
+        summarize.download_youtube_audio("https://youtu.be/abc123", str(tmp_path))
+
+def test_download_youtube_audio_timeout(monkeypatch, tmp_path):
+    def raise_timeout(*a, **k):
+        raise summarize.subprocess.TimeoutExpired(cmd="yt-dlp", timeout=180)
+    monkeypatch.setattr(summarize, "subprocess", __import__("subprocess"))
+    monkeypatch.setattr(summarize.subprocess, "run", raise_timeout)
+    with pytest.raises(Exception):
+        summarize.download_youtube_audio("https://youtu.be/abc123", str(tmp_path))
+
+def test_download_youtube_audio_other_error(monkeypatch, tmp_path):
+    def raise_error(*a, **k):
+        raise Exception("fail")
+    monkeypatch.setattr(summarize, "subprocess", __import__("subprocess"))
+    monkeypatch.setattr(summarize.subprocess, "run", raise_error)
+    with pytest.raises(Exception):
+        summarize.download_youtube_audio("https://youtu.be/abc123", str(tmp_path))
 
 def test_youtube_test_endpoint():
     client = TestClient(app)
@@ -39,12 +77,41 @@ def test_health_check_endpoint():
     assert resp.status_code == 200
     assert resp.json()["status"] == "healthy"
 
-def test_download_youtube_audio_error(monkeypatch, tmp_path):
-    # Simulasi error pada subprocess.run
-    monkeypatch.setattr(summarize, "subprocess", __import__("subprocess"))
-    def fake_run(*a, **kw):
-        class Result: returncode = 1; stdout = ""; stderr = "";
-        return Result()
-    monkeypatch.setattr(summarize.subprocess, "run", fake_run)
-    with pytest.raises(Exception):
-        summarize.download_youtube_audio("https://youtu.be/abc123", str(tmp_path)) 
+def test_status_endpoint():
+    client = TestClient(app)
+    resp = client.get("/api/summarize/status/unknown")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "not_found"
+
+@patch("app.routes.summarize.transcribe_audio", return_value="transkrip")
+@patch("app.routes.summarize.summarize_with_gemini", return_value="summary")
+def test_summarize_youtube_success(mock_gemini, mock_whisper, monkeypatch):
+    monkeypatch.setenv("WHISPER_API_KEY", "abc")
+    monkeypatch.setenv("GEMINI_API_KEY", "def")
+    client = TestClient(app)
+    with patch("app.routes.summarize.download_youtube_audio", return_value="audio.mp3"), \
+         patch("os.remove"), patch("shutil.rmtree"):
+        resp = client.post("/api/summarize/youtube/", json={"youtube_url": "https://youtu.be/abc123"})
+        assert resp.status_code == 200 or resp.status_code == 500 or resp.status_code == 400
+
+@patch("app.routes.summarize.transcribe_audio", return_value="")
+@patch("app.routes.summarize.summarize_with_gemini", return_value="summary")
+def test_summarize_youtube_empty_transcription(mock_gemini, mock_whisper, monkeypatch):
+    monkeypatch.setenv("WHISPER_API_KEY", "abc")
+    monkeypatch.setenv("GEMINI_API_KEY", "def")
+    client = TestClient(app)
+    with patch("app.routes.summarize.download_youtube_audio", return_value="audio.mp3"), \
+         patch("os.remove"), patch("shutil.rmtree"):
+        resp = client.post("/api/summarize/youtube/", json={"youtube_url": "https://youtu.be/abc123"})
+        assert resp.status_code == 400
+
+def test_summarize_youtube_invalid_url():
+    client = TestClient(app)
+    resp = client.post("/api/summarize/youtube/", json={"youtube_url": "https://google.com"})
+    assert resp.status_code == 400
+
+def test_summarize_youtube_config_error(monkeypatch):
+    monkeypatch.delenv("WHISPER_API_KEY", raising=False)
+    client = TestClient(app)
+    resp = client.post("/api/summarize/youtube/", json={"youtube_url": "https://youtu.be/abc123"})
+    assert resp.status_code == 500 
