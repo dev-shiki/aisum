@@ -88,346 +88,78 @@ def detect_content_type(text: str) -> str:
     return content_type if scores[content_type] > 0 else 'general'
 
 def create_meeting_summary_prompt(text: str) -> str:
-    """
-    Membuat prompt untuk meeting summarization.
-    """
     return f"""
-TUGAS: Buat ringkasan meeting yang profesional dan terstruktur dari transkripsi berikut.
-
-PETUNJUK:
-1. Identifikasi topik utama dan agenda meeting
-2. Ekstrak poin-poin penting dan keputusan yang diambil
-3. Catat action items dan tanggung jawab
-4. Identifikasi timeline dan deadline yang disebutkan
-5. Ringkas dalam format yang mudah dibaca
+TUGAS: Buat ringkasan meeting berikut dalam bentuk paragraf narasi yang jelas, singkat, dan mudah dipahami. Jangan gunakan format JSON atau bullet point. Gabungkan semua poin penting, agenda, keputusan, dan kesimpulan menjadi satu ringkasan naratif.
 
 TRANSKRIPSI MEETING:
 {text}
 
-FORMAT OUTPUT (dalam JSON):
-{{
-    "meeting_info": {{
-        "title": "Judul meeting berdasarkan konteks",
-        "date": "Tanggal meeting jika disebutkan",
-        "duration": "Perkiraan durasi berdasarkan transkripsi",
-        "participants": ["Daftar peserta yang disebutkan"]
-    }},
-    "agenda": ["Daftar agenda yang dibahas"],
-    "key_points": [
-        {{
-            "topic": "Topik yang dibahas",
-            "summary": "Ringkasan poin penting",
-            "decisions": ["Keputusan yang diambil"],
-            "notes": "Catatan tambahan"
-        }}
-    ],
-    "action_items": [
-        {{
-            "task": "Deskripsi tugas",
-            "assignee": "Orang yang bertanggung jawab",
-            "deadline": "Deadline jika disebutkan",
-            "priority": "High/Medium/Low"
-        }}
-    ],
-    "next_meeting": {{
-        "scheduled": "Ya/Tidak",
-        "date": "Tanggal jika dijadwalkan",
-        "agenda": "Agenda untuk meeting berikutnya"
-    }},
-    "executive_summary": "Ringkasan eksekutif dalam 2-3 kalimat",
-    "risk_issues": ["Masalah atau risiko yang diidentifikasi"],
-    "success_metrics": ["Metrik keberhasilan yang disebutkan"]
-}}
-
-Pastikan output dalam format JSON yang valid dan lengkap.
+FORMAT OUTPUT:
+Ringkasan naratif dalam 1-3 paragraf.
 """
 
 def create_document_summary_prompt(text: str) -> str:
-    """
-    Membuat prompt untuk document summarization.
-    """
     return f"""
-TUGAS: Buat ringkasan dokumen yang komprehensif dan terstruktur dari teks berikut.
-
-PETUNJUK:
-1. Identifikasi topik utama dan tujuan dokumen
-2. Ekstrak poin-poin kunci dan temuan penting
-3. Identifikasi metodologi dan data yang digunakan
-4. Ringkas kesimpulan dan rekomendasi
-5. Catat referensi dan sumber yang disebutkan
+TUGAS: Buat ringkasan dokumen berikut dalam bentuk paragraf narasi yang jelas, singkat, dan mudah dipahami. Jangan gunakan format JSON atau bullet point. Gabungkan semua poin penting, tujuan, temuan, dan kesimpulan menjadi satu ringkasan naratif.
 
 DOKUMEN:
 {text}
 
-FORMAT OUTPUT (dalam JSON):
-{{
-    "document_info": {{
-        "title": "Judul dokumen berdasarkan konteks",
-        "type": "Jenis dokumen (laporan/artikel/paper/dll)",
-        "author": "Penulis jika disebutkan",
-        "date": "Tanggal publikasi jika disebutkan"
-    }},
-    "executive_summary": "Ringkasan eksekutif dalam 2-3 kalimat",
-    "objectives": ["Tujuan dan sasaran dokumen"],
-    "methodology": {{
-        "approach": "Pendekatan yang digunakan",
-        "data_sources": ["Sumber data yang digunakan"],
-        "tools": ["Tools atau metode analisis"]
-    }},
-    "key_findings": [
-        {{
-            "finding": "Temuan utama",
-            "description": "Penjelasan detail",
-            "significance": "Pentingnya temuan ini"
-        }}
-    ],
-    "conclusions": ["Kesimpulan utama"],
-    "recommendations": [
-        {{
-            "recommendation": "Rekomendasi",
-            "priority": "High/Medium/Low",
-            "implementation": "Cara implementasi"
-        }}
-    ],
-    "references": ["Referensi yang disebutkan"],
-    "limitations": ["Keterbatasan studi/dokumen"]
-}}
-
-Pastikan output dalam format JSON yang valid dan lengkap.
+FORMAT OUTPUT:
+Ringkasan naratif dalam 1-3 paragraf.
 """
 
 def create_presentation_summary_prompt(text: str) -> str:
-    """
-    Membuat prompt untuk presentation summarization.
-    """
     return f"""
-TUGAS: Buat ringkasan presentasi yang terstruktur dari transkripsi berikut.
+TUGAS: Buat ringkasan presentasi berikut dalam bentuk paragraf narasi yang jelas, singkat, dan mudah dipahami. Jangan gunakan format JSON atau bullet point. Gabungkan semua poin penting, tujuan, dan kesimpulan menjadi satu ringkasan naratif.
 
-PETUNJUK:
-1. Identifikasi topik dan tujuan presentasi
-2. Ekstrak poin-poin utama dari setiap slide/section
-3. Catat data dan statistik yang disajikan
-4. Identifikasi kesimpulan dan call-to-action
-5. Ringkas dalam format yang mudah dipahami
-
-TRANSCRIPSI PRESENTASI:
+TRANSKRIPSI PRESENTASI:
 {text}
 
-FORMAT OUTPUT (dalam JSON):
-{{
-    "presentation_info": {{
-        "title": "Judul presentasi",
-        "presenter": "Pembicara jika disebutkan",
-        "audience": "Target audience",
-        "duration": "Durasi presentasi"
-    }},
-    "overview": "Ringkasan singkat presentasi",
-    "objectives": ["Tujuan presentasi"],
-    "key_sections": [
-        {{
-            "section": "Nama section/slide",
-            "content": "Konten utama",
-            "key_points": ["Poin-poin penting"],
-            "data": ["Data/statistik yang disajikan"]
-        }}
-    ],
-    "main_arguments": ["Argumen utama yang disampaikan"],
-    "supporting_evidence": ["Bukti atau data pendukung"],
-    "conclusions": ["Kesimpulan presentasi"],
-    "call_to_action": "Aksi yang diharapkan dari audience",
-    "q_and_a": ["Pertanyaan dan jawaban jika ada"]
-}}
-
-Pastikan output dalam format JSON yang valid dan lengkap.
+FORMAT OUTPUT:
+Ringkasan naratif dalam 1-3 paragraf.
 """
 
 def create_interview_summary_prompt(text: str) -> str:
-    """
-    Membuat prompt untuk interview summarization.
-    """
     return f"""
-TUGAS: Buat ringkasan wawancara yang terstruktur dari transkripsi berikut.
+TUGAS: Buat ringkasan wawancara berikut dalam bentuk paragraf narasi yang jelas, singkat, dan mudah dipahami. Jangan gunakan format JSON atau bullet point. Gabungkan semua poin penting, pertanyaan, jawaban, dan insight menjadi satu ringkasan naratif.
 
-PETUNJUK:
-1. Identifikasi topik wawancara dan peserta
-2. Ekstrak pertanyaan dan jawaban penting
-3. Catat insight dan pengalaman yang dibagikan
-4. Identifikasi rekomendasi dan saran
-5. Ringkas dalam format yang informatif
-
-TRANSCRIPSI WAWANCARA:
+TRANSKRIPSI WAWANCARA:
 {text}
 
-FORMAT OUTPUT (dalam JSON):
-{{
-    "interview_info": {{
-        "topic": "Topik wawancara",
-        "interviewee": "Nama responden",
-        "interviewer": "Nama pewawancara",
-        "date": "Tanggal wawancara jika disebutkan"
-    }},
-    "background": "Latar belakang responden",
-    "key_questions": [
-        {{
-            "question": "Pertanyaan yang diajukan",
-            "answer": "Jawaban responden",
-            "insights": ["Insight yang diperoleh"]
-        }}
-    ],
-    "main_themes": ["Tema utama yang dibahas"],
-    "experiences": ["Pengalaman yang dibagikan"],
-    "challenges": ["Tantangan yang dihadapi"],
-    "solutions": ["Solusi yang disarankan"],
-    "recommendations": ["Rekomendasi dari responden"],
-    "key_learnings": ["Pelajaran yang dapat diambil"],
-    "follow_up": ["Pertanyaan lanjutan yang mungkin relevan"]
-}}
-
-Pastikan output dalam format JSON yang valid dan lengkap.
+FORMAT OUTPUT:
+Ringkasan naratif dalam 1-3 paragraf.
 """
 
 def create_lecture_summary_prompt(text: str) -> str:
-    """
-    Membuat prompt untuk lecture/training summarization.
-    """
     return f"""
-TUGAS: Buat ringkasan materi pembelajaran yang terstruktur dari transkripsi berikut.
-
-PETUNJUK:
-1. Identifikasi topik dan tujuan pembelajaran
-2. Ekstrak konsep dan teori yang diajarkan
-3. Catat contoh dan ilustrasi yang diberikan
-4. Identifikasi poin-poin penting untuk diingat
-5. Ringkas dalam format yang mudah dipelajari
+TUGAS: Buat ringkasan materi pembelajaran berikut dalam bentuk paragraf narasi yang jelas, singkat, dan mudah dipahami. Jangan gunakan format JSON atau bullet point. Gabungkan semua poin penting, konsep, dan kesimpulan menjadi satu ringkasan naratif.
 
 MATERI PEMBELAJARAN:
 {text}
 
-FORMAT OUTPUT (dalam JSON):
-{{
-    "lecture_info": {{
-        "title": "Judul materi",
-        "instructor": "Pengajar/pembicara",
-        "subject": "Mata pelajaran/topik",
-        "level": "Level kesulitan (Basic/Intermediate/Advanced)"
-    }},
-    "learning_objectives": ["Tujuan pembelajaran"],
-    "main_concepts": [
-        {{
-            "concept": "Konsep utama",
-            "explanation": "Penjelasan detail",
-            "examples": ["Contoh yang diberikan"],
-            "importance": "Mengapa penting"
-        }}
-    ],
-    "key_theories": ["Teori yang diajarkan"],
-    "practical_applications": ["Aplikasi praktis"],
-    "important_points": ["Poin-poin penting untuk diingat"],
-    "common_mistakes": ["Kesalahan umum yang dihindari"],
-    "tips_and_tricks": ["Tips dan trik"],
-    "exercises": ["Latihan yang disarankan"],
-    "further_reading": ["Bacaan lanjutan"],
-    "summary": "Ringkasan singkat materi"
-}}
-
-Pastikan output dalam format JSON yang valid dan lengkap.
+FORMAT OUTPUT:
+Ringkasan naratif dalam 1-3 paragraf.
 """
 
 def create_general_summary_prompt(text: str) -> str:
-    """
-    Membuat prompt untuk general summarization.
-    """
     return f"""
-Ringkas teks berikut dengan format yang terstruktur:
+Ringkas teks berikut dalam bentuk paragraf narasi yang jelas, singkat, dan mudah dipahami. Jangan gunakan format JSON atau bullet point. Gabungkan semua poin penting dan kesimpulan menjadi satu ringkasan naratif.
 
 Teks: {text}
 
-Format output:
-📋 RINGKASAN EKSEKUTIF
-[Ringkasan singkat dalam 2-3 kalimat]
-
-🎯 POIN-POIN UTAMA
-• [Poin 1]
-• [Poin 2]
-• [Poin 3]
-
-📝 INFORMASI PENTING
-• [Informasi 1]
-• [Informasi 2]
-
-✅ KESIMPULAN
-• [Kesimpulan 1]
-• [Kesimpulan 2]
-
-⚠️ HAL YANG PERLU DIPERHATIKAN
-• [Hal 1]
-• [Hal 2]
-
-📅 TIMELINE (jika ada)
-• [Timeline 1]
-• [Timeline 2]
-
-Buat ringkasan yang informatif, terstruktur, dan mudah dibaca.
+Format output: Ringkasan naratif dalam 1-3 paragraf.
 """
 
 def create_youtube_summary_prompt(text: str) -> str:
-    """
-    Membuat prompt untuk YouTube video summarization.
-    """
     return f"""
-TUGAS: Buat ringkasan video YouTube yang informatif dan terstruktur dari transkripsi berikut.
+TUGAS: Buat ringkasan video YouTube berikut dalam bentuk paragraf narasi yang jelas, singkat, dan mudah dipahami. Jangan gunakan format JSON atau bullet point. Gabungkan semua poin penting, tujuan, dan kesimpulan menjadi satu ringkasan naratif.
 
-PETUNJUK:
-1. Identifikasi topik utama dan tujuan video
-2. Ekstrak poin-poin penting dan informasi kunci
-3. Catat tips, tutorial, atau rekomendasi yang diberikan
-4. Identifikasi produk, layanan, atau referensi yang disebutkan
-5. Ringkas dalam format yang mudah dipahami
-
-TRANSCRIPSI VIDEO YOUTUBE:
+TRANSKRIPSI VIDEO YOUTUBE:
 {text}
 
-FORMAT OUTPUT (dalam JSON):
-{{
-    "video_info": {{
-        "title": "Judul video berdasarkan konteks",
-        "creator": "Nama creator/channel jika disebutkan",
-        "category": "Kategori video (tutorial/review/entertainment/dll)",
-        "duration": "Perkiraan durasi berdasarkan transkripsi"
-    }},
-    "executive_summary": "Ringkasan singkat video dalam 2-3 kalimat",
-    "main_topics": ["Topik utama yang dibahas"],
-    "key_points": [
-        {{
-            "point": "Poin penting",
-            "description": "Penjelasan detail",
-            "timestamp": "Perkiraan timestamp jika disebutkan",
-            "importance": "Mengapa penting"
-        }}
-    ],
-    "tutorial_steps": [
-        {{
-            "step": "Langkah tutorial",
-            "description": "Penjelasan langkah",
-            "tips": "Tips tambahan jika ada"
-        }}
-    ],
-    "products_mentioned": [
-        {{
-            "product": "Nama produk",
-            "description": "Deskripsi produk",
-            "opinion": "Opini creator tentang produk",
-            "link": "Link jika disebutkan"
-        }}
-    ],
-    "tips_and_tricks": ["Tips dan trik yang dibagikan"],
-    "recommendations": ["Rekomendasi dari creator"],
-    "call_to_action": "Aksi yang diminta creator (subscribe/like/comment)",
-    "related_content": ["Konten terkait yang disebutkan"],
-    "credits": ["Credit atau shoutout yang diberikan"]
-}}
-
-Pastikan output dalam format JSON yang valid dan lengkap.
+FORMAT OUTPUT:
+Ringkasan naratif dalam 1-3 paragraf.
 """
 
 def create_content_specific_prompt(text: str, content_type: str = None) -> str:
