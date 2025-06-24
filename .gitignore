@@ -78,3 +78,5 @@ out/
 # Cache
 .cache/
 .parcel-cache/
+
+push.bat
