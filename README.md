@@ -206,4 +206,31 @@ npm run lint
 
 This project is licensed under the MIT License. See the LICENSE file for details.
 
+## 🚢 Docker & GCP Deployment
+
+### Local Development with Docker Compose
+
+```bash
+docker-compose up --build
+```
+- Backend: http://localhost:8000
+- Frontend: http://localhost:5173
+
+### Build and Push Images for GCP
+
+1. **Build Docker images:**
+   ```bash
+   docker build -t gcr.io/<your-gcp-project-id>/aisum-backend:latest ./backend
+   docker build -t gcr.io/<your-gcp-project-id>/aisum-frontend:latest ./meeting-summarizer
+   ```
+2. **Push to Google Container Registry:**
+   ```bash
+   docker push gcr.io/<your-gcp-project-id>/aisum-backend:latest
+   docker push gcr.io/<your-gcp-project-id>/aisum-frontend:latest
+   ```
+3. **Deploy using GCP Cloud Run, GKE, or Compute Engine as needed.**
+
+- Make sure to set up your `.env` file for the backend and configure environment variables in your GCP deployment.
+- For persistent storage (e.g., `/app/app/temp`), use GCP volumes or buckets as appropriate.
+
 ---
