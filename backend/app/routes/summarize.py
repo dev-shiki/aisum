@@ -74,16 +74,15 @@ def download_youtube_audio(youtube_url: str, output_dir: str) -> str:
         # Download command dengan optimasi untuk kecepatan
         command = [
             yt_dlp_path,
-            '-f', 'worstaudio[ext=m4a]/worstaudio/best[filesize<10M]',  # Lebih kecil dari 10MB
+            '-f', 'bestaudio',  # Ambil kualitas audio terbaik
             '--extract-audio',
             '--audio-format', 'mp3',
-            '--audio-quality', '32K',  # Quality lebih rendah untuk kecepatan
+            '--audio-quality', '64K',  # Kualitas lebih baik
             '--max-downloads', '1',
             '--no-playlist',
             '--no-check-certificates',  # Skip SSL check untuk kecepatan
             '--no-warnings',
             '--quiet',
-            '--max-filesize', '10M',  # Batasi ukuran file maksimal
             '-o', output_path,
             youtube_url
         ]
