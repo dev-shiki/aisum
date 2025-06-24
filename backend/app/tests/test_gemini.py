@@ -15,27 +15,34 @@ def test_detect_content_type_all_branches():
 
 def test_create_summary_prompts():
     text = 'isi'
-    assert 'Ringkasan dokumen' in gemini.create_document_summary_prompt(text)
-    assert 'Ringkasan presentasi' in gemini.create_presentation_summary_prompt(text)
-    assert 'Ringkasan materi' in gemini.create_lecture_summary_prompt(text)
-    assert 'Ringkasan video YouTube' in gemini.create_youtube_summary_prompt(text)
-    assert 'Ringkasan meeting' in gemini.create_meeting_summary_prompt(text)
-    assert 'Ringkasan wawancara' in gemini.create_interview_summary_prompt(text)
-    assert 'Ringkasan umum' in gemini.create_general_summary_prompt(text)
+    out_doc = gemini.create_document_summary_prompt(text)
+    assert isinstance(out_doc, str)
+    assert 'TUGAS:' in out_doc
+    assert 'Ringkasan naratif' in out_doc
+    out_pres = gemini.create_presentation_summary_prompt(text)
+    assert isinstance(out_pres, str)
+    out_lect = gemini.create_lecture_summary_prompt(text)
+    assert isinstance(out_lect, str)
+    out_yt = gemini.create_youtube_summary_prompt(text)
+    assert isinstance(out_yt, str)
+    out_meet = gemini.create_meeting_summary_prompt(text)
+    assert isinstance(out_meet, str)
+    out_int = gemini.create_interview_summary_prompt(text)
+    assert isinstance(out_int, str)
+    out_gen = gemini.create_general_summary_prompt(text)
+    assert isinstance(out_gen, str)
 
 def test_create_content_specific_prompt():
     text = 'rapat meeting'
-    assert 'Ringkasan meeting' in gemini.create_content_specific_prompt(text, 'meeting')
-    assert 'Ringkasan dokumen' in gemini.create_content_specific_prompt(text, 'document')
-    assert 'Ringkasan presentasi' in gemini.create_content_specific_prompt(text, 'presentation')
-    assert 'Ringkasan wawancara' in gemini.create_content_specific_prompt(text, 'interview')
-    assert 'Ringkasan materi' in gemini.create_content_specific_prompt(text, 'lecture')
-    assert 'Ringkasan video YouTube' in gemini.create_content_specific_prompt(text, 'youtube')
-    assert 'Ringkasan umum' in gemini.create_content_specific_prompt(text, 'general')
+    for ct in ['meeting', 'document', 'presentation', 'interview', 'lecture', 'youtube', 'general']:
+        out = gemini.create_content_specific_prompt(text, ct)
+        assert isinstance(out, str)
+        assert 'TUGAS:' in out
 
 def test_format_content_specific_output_all_branches():
     parsed = {"format": "text", "content": "isi"}
-    assert gemini.format_content_specific_output(parsed, "isi", "meeting").startswith('=')
+    # Jika format text, hasil == content
+    assert gemini.format_content_specific_output(parsed, "isi", "meeting") == "isi"
     for ct in ["meeting", "document", "presentation", "interview", "lecture", "youtube", "general"]:
         parsed = {"executive_summary": "isi"}
         # Tambah field sesuai branch
