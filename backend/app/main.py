@@ -25,8 +25,8 @@ async def lifespan(app: FastAPI):
         raise e
     
     # Pastikan folder temp ada
-    os.makedirs(Config.TEMP_FOLDER, exist_ok=True)
-    logging.info(f"✅ Folder temp siap: {Config.TEMP_FOLDER}")
+    os.makedirs(Config().TEMP_FOLDER, exist_ok=True)
+    logging.info(f"✅ Folder temp siap: {Config().TEMP_FOLDER}")
     
     yield
     

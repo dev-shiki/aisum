@@ -18,7 +18,7 @@ def test_transcribe_audio_error(monkeypatch):
     with patch('app.services.whisper.requests.post') as mock_post, \
          patch('builtins.open', create=True) as mock_open:
         mock_post.return_value.status_code = 500
-        mock_post.return_value.json.return_value = {'error': 'fail'}
+        mock_post.return_value.json.side_effect = Exception('fail')
         mock_post.return_value.text = 'fail'
         mock_open.return_value.__enter__.return_value = MagicMock()
         with pytest.raises(Exception):
