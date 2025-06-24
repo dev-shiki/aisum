@@ -5,15 +5,16 @@ from app.config import Config
 def test_config_getters(monkeypatch):
     monkeypatch.setenv("WHISPER_API_KEY", "abc")
     monkeypatch.setenv("GEMINI_API_KEY", "def")
-    assert Config.WHISPER_API_URL.startswith("http")
-    assert Config.WHISPER_API_KEY == "abc"
-    assert Config.TEMP_FOLDER == "temp/"
-    assert isinstance(Config.MAX_SUMMARY_LENGTH, int)
-    assert Config.GEMINI_API_URL.startswith("http")
-    assert Config.GEMINI_API_KEY == "def"
-    assert isinstance(Config.GEMINI_RPM, int)
-    assert isinstance(Config.GEMINI_TPM, int)
-    assert isinstance(Config.GEMINI_RPD, int)
+    config = Config()
+    assert config.WHISPER_API_URL.startswith("http")
+    assert config.WHISPER_API_KEY == "abc"
+    assert config.TEMP_FOLDER == "temp/"
+    assert isinstance(config.MAX_SUMMARY_LENGTH, int)
+    assert config.GEMINI_API_URL.startswith("http")
+    assert config.GEMINI_API_KEY == "def"
+    assert isinstance(config.GEMINI_RPM, int)
+    assert isinstance(config.GEMINI_TPM, int)
+    assert isinstance(config.GEMINI_RPD, int)
 
 def test_validate_config_success(monkeypatch):
     monkeypatch.setenv("WHISPER_API_KEY", "abc")
