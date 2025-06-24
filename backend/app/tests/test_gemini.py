@@ -37,7 +37,10 @@ def test_create_content_specific_prompt():
     for ct in ['meeting', 'document', 'presentation', 'interview', 'lecture', 'youtube', 'general']:
         out = gemini.create_content_specific_prompt(text, ct)
         assert isinstance(out, str)
-        assert 'TUGAS:' in out
+        if ct == 'general':
+            assert 'Ringkas teks berikut' in out
+        else:
+            assert 'TUGAS:' in out
 
 def test_format_content_specific_output_all_branches():
     parsed = {"format": "text", "content": "isi"}
