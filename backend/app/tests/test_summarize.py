@@ -114,4 +114,64 @@ def test_summarize_youtube_config_error(monkeypatch):
     monkeypatch.delenv("WHISPER_API_KEY", raising=False)
     client = TestClient(app)
     resp = client.post("/api/summarize/youtube/", json={"youtube_url": "https://youtu.be/abc123"})
-    assert resp.status_code == 500 
+    assert resp.status_code == 500
+
+def test_summarize_upload_file_success(monkeypatch, tmp_path):
+    monkeypatch.setenv("WHISPER_API_KEY", "abc")
+    monkeypatch.setenv("GEMINI_API_KEY", "def")
+    client = TestClient(app)
+    class DummyFile:
+        filename = "test.mp3"
+        file = MagicMock()
+    with patch("builtins.open", create=True) as mock_open, \
+         patch("shutil.copyfileobj") as mock_copy, \
+         patch("os.makedirs"):
+        mock_open.return_value.__enter__.return_value = MagicMock()
+        resp = client.post("/api/summarize/", files={"file": ("test.mp3", b"data", "audio/mp3")})
+        assert resp.status_code == 200
+        assert "task_id" in resp.json()
+
+def test_summarize_upload_file_invalid(monkeypatch):
+    client = TestClient(app)
+    resp = client.post("/api/summarize/", files={"file": ("", b"data", "audio/mp3")})
+    assert resp.status_code == 400
+    resp2 = client.post("/api/summarize/", files={"file": ("test.txt", b"data", "text/plain")})
+    assert resp2.status_code == 400
+
+def test_summarize_upload_file_save_error(monkeypatch):
+    monkeypatch.setenv("WHISPER_API_KEY", "abc")
+    monkeypatch.setenv("GEMINI_API_KEY", "def")
+    client = TestClient(app)
+    with patch("builtins.open", side_effect=Exception("fail")), \
+         patch("os.makedirs"):
+        resp = client.post("/api/summarize/", files={"file": ("test.mp3", b"data", "audio/mp3")})
+        assert resp.status_code == 500
+
+def test_summarize_upload_file_config_error(monkeypatch):
+    monkeypatch.delenv("WHISPER_API_KEY", raising=False)
+    client = TestClient(app)
+    resp = client.post("/api/summarize/", files={"file": ("test.mp3", b"data", "audio/mp3")})
+    assert resp.status_code == 500
+
+def test_status_endpoint_task_exists(monkeypatch):
+    from app.routes.summarize import tasks
+    client = TestClient(app)
+    tasks["abc"] = {"status": "completed"}
+    resp = client.get("/api/summarize/status/abc")
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "completed"
+    tasks.pop("abc")
+
+def test_process_task_error(monkeypatch):
+    # Test error path di async process_task
+    monkeypatch.setenv("WHISPER_API_KEY", "abc")
+    monkeypatch.setenv("GEMINI_API_KEY", "def")
+    client = TestClient(app)
+    with patch("builtins.open", create=True) as mock_open, \
+         patch("shutil.copyfileobj") as mock_copy, \
+         patch("os.makedirs"), \
+         patch("app.routes.summarize.transcribe_audio", side_effect=Exception("fail")):
+        mock_open.return_value.__enter__.return_value = MagicMock()
+        resp = client.post("/api/summarize/", files={"file": ("test.mp3", b"data", "audio/mp3")})
+        assert resp.status_code == 200
+        # Tunggu task async selesai (opsional, bisa dicek status task jika ingin lebih detail) 

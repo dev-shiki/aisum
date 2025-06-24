@@ -17,4 +17,10 @@ def test_shutdown_event(monkeypatch):
     monkeypatch.setenv("WHISPER_API_KEY", "abc")
     monkeypatch.setenv("GEMINI_API_KEY", "def")
     with TestClient(app) as client:
-        pass  # Exiting context triggers shutdown 
+        pass  # Exiting context triggers shutdown
+
+def test_startup_config_error(monkeypatch):
+    monkeypatch.delenv("WHISPER_API_KEY", raising=False)
+    with pytest.raises(Exception):
+        with TestClient(app) as client:
+            pass 
