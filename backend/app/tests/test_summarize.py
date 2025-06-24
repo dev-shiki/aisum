@@ -134,7 +134,7 @@ def test_summarize_upload_file_success(monkeypatch, tmp_path):
 def test_summarize_upload_file_invalid(monkeypatch):
     client = TestClient(app)
     resp = client.post("/api/summarize/", files={"file": ("", b"data", "audio/mp3")})
-    assert resp.status_code == 400
+    assert resp.status_code == 422
     resp2 = client.post("/api/summarize/", files={"file": ("test.txt", b"data", "text/plain")})
     assert resp2.status_code == 400
 

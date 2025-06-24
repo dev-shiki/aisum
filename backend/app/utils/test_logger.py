@@ -1,10 +1,8 @@
-import pytest
 import logging
 from unittest.mock import AsyncMock, patch
 from fastapi import Request, Response
 from app.utils.logger import log_request, log_response
 
-@pytest.mark.asyncio
 def test_log_request_multipart_logs_file_upload(caplog):
     mock_request = AsyncMock(spec=Request)
     mock_request.headers = {"content-type": "multipart/form-data"}
@@ -14,7 +12,6 @@ def test_log_request_multipart_logs_file_upload(caplog):
         import asyncio; asyncio.run(log_request(mock_request))
     assert "File Upload Detected" in caplog.text
 
-@pytest.mark.asyncio
 def test_log_request_normal_logs_body(caplog):
     mock_request = AsyncMock(spec=Request)
     mock_request.headers = {"content-type": "application/json"}
@@ -25,7 +22,6 @@ def test_log_request_normal_logs_body(caplog):
         import asyncio; asyncio.run(log_request(mock_request))
     assert 'Body: {"foo": "bar"}' in caplog.text
 
-@pytest.mark.asyncio
 def test_log_request_exception_logs_error(caplog):
     mock_request = AsyncMock(spec=Request)
     mock_request.headers = {"content-type": "application/json"}
@@ -36,7 +32,6 @@ def test_log_request_exception_logs_error(caplog):
         import asyncio; asyncio.run(log_request(mock_request))
     assert "Gagal mencatat request" in caplog.text
 
-@pytest.mark.asyncio
 def test_log_response_logs_status(caplog):
     mock_response = AsyncMock(spec=Response)
     mock_response.status_code = 200
@@ -44,7 +39,6 @@ def test_log_response_logs_status(caplog):
         import asyncio; asyncio.run(log_response(mock_response))
     assert "Response: Status 200" in caplog.text
 
-@pytest.mark.asyncio
 def test_log_response_exception_logs_error(caplog):
     mock_response = AsyncMock(spec=Response)
     mock_response.status_code = 200

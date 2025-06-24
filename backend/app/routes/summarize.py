@@ -271,10 +271,10 @@ async def summarize(file: UploadFile = File(...)):
 
     task_id = str(uuid.uuid4())
     unique_filename = f"{task_id}_{file.filename}"
-    temp_file_path = os.path.join(Config.TEMP_FOLDER, unique_filename)
+    temp_file_path = os.path.join(Config().TEMP_FOLDER, unique_filename)
     
     # Pastikan folder temp ada
-    os.makedirs(Config.TEMP_FOLDER, exist_ok=True)
+    os.makedirs(Config().TEMP_FOLDER, exist_ok=True)
 
     try:
         with open(temp_file_path, "wb") as temp_file:

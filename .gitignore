@@ -80,3 +80,14 @@ out/
 .parcel-cache/
 
 push.bat
+
+# Python virtual environment
+venv/
+backend/venv/
+.venv/
+backend/.venv/
+
+# Linux man pages and share
+share/
+man/
+*.1
