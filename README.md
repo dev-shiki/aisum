@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/gh/dev-shiki/aisum/graph/badge.svg?token=EXGPRQ7C44)](https://codecov.io/gh/dev-shiki/aisum)
+
 # Meeting Summarizer
 
 Meeting Summarizer is a web application that allows users to upload meeting audio files or YouTube links and receive automatic transcriptions and narrative summaries using state-of-the-art AI models.
