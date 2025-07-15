@@ -54,5 +54,5 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: dev-shiki/aisum
+          slug: dev-shiki/trans-summarizer
           files: meeting-summarizer/coverage/lcov.info,backend/coverage.xml 

@@ -1,4 +1,4 @@
-[![codecov](https://codecov.io/gh/dev-shiki/aisum/graph/badge.svg?token=EXGPRQ7C44)](https://codecov.io/gh/dev-shiki/aisum)
+[![codecov](https://codecov.io/gh/dev-shiki/trans-summarizer/graph/badge.svg?token=EXGPRQ7C44)](https://codecov.io/gh/dev-shiki/trans-summarizer)
 
 # Meeting Summarizer
 
